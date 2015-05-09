@@ -140,6 +140,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// Parse the menu selections:
 		switch (wmId)
 		{
+		case ID_FILE_NEWGAME:
+			GameReset();
+			InvalidateRect(hWnd, NULL, true);
+			break;
 		case IDM_ABOUT:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
@@ -162,6 +166,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		GameSetMove(xPos, yPos);
 		InvalidateRect(hWnd, NULL, true);
 		GameCheckWinner(hWnd);
+		break;
+	case WM_KEYDOWN:
+		GameSetKey(wParam);
 		break;
 	case WM_SIZE:
 		RECT r;
