@@ -2,15 +2,19 @@
 #include "GameMgr.h"
 
 char board[4][4];
-bool xMove = true;
+bool wMove = true;
 bool gameOver = false;
+int wSum = 0;
+int bSum = 0;
+char key;
+
 
 void GameReset() 
 {
 	gameOver = false;
-	xMove = true;
-	for (int i = 0; i < 3; i++){
-		for (int j = 0; j < 3; j++){
+	wMove = true;
+	for (int i = 0; i < 4; i++){
+		for (int j = 0; j < 4; j++){
 			board[i][j] = EMPTY;
 		}
 	}
@@ -30,50 +34,144 @@ void GameDrawBoard(HWND hwnd, HDC hdc)
 	MoveToEx(hdc, 100, 200, NULL); LineTo(hdc, 400, 200);
 	MoveToEx(hdc, 100, 300, NULL); LineTo(hdc, 400, 300);
 
+	//Create title
+	TextOut(hdc, 222, 50, _T("Go!"), 3);
+
+	//Display amount of pieces captured for each player **Figure out how to TextOut a variable
+	TextOut(hdc, 190, 450, _T("Player 1 score: " + wSum), 25);
+	TextOut(hdc, 190, 480, _T("Player 2 score: " + bSum), 25);
+
+	
+
 	//Walk through the board and draw an X or O wherever that value is
 	for (int i = 0; i < 4; i++){
 		for (int j = 0; j < 4; j++){
 			if (board[i][j] == X)
-				GameDrawX(hdc, i, j);
+				GameDrawWhite(hdc, i, j);
 			else if (board[i][j] == O)
-				GameDrawO(hdc, i, j);
+				GameDrawBlack(hdc, i, j);
+			
 		}
 	}
+
+	
+
+	
 }
 
 void GameSetMove(int i, int j)
 {
-	//Check if the move is inside the board
-	if (i >= 0 && i <= 3 && j >= 0 && j <= 3){
+
+	//Allow user to pass
+	if (key == VK_SPACE){
+		wMove = !wMove;
+		key = VK_DOWN;
+	}
+
+	//End the game
+	//if (key == VK_RETURN){
+		//GameOver();
+//	}
+
+	//Check if the move is inside the board, assign the value of the player to that array element, then check for liberties
+	if (i >= 0 && i <= 3 && j >= 0 && j <= 3 && board[i][j] == 0){
 		if (!gameOver){
-			if (xMove)
+			if (wMove){
 				board[i][j] = X;
-			else
+				for (int i = 0; i < 3; i++){
+					for (int j = 0; j < 3; j++){
+						CheckLiberties(i, j);
+					}
+				}
+			}
+			else{
 				board[i][j] = O;
+				for (int i = 0; i < 3; i++){
+					for (int j = 0; j < 3; j++){
+						CheckLiberties(i, j);
+					}
+				}
+			}
 			//Next player's move
-			xMove = !xMove;
-		}
+			wMove = !wMove;
+		} 
 	}
 }
 
 void GameCheckWinner(HWND hwnd) {}
 
-void GameDrawX(HDC hdc, int i, int j) 
+void GameDrawWhite(HDC hdc, int i, int j) 
 {
-	MoveToEx(hdc, 70 + (100 * i), 70 + (100 * j), NULL);
-	LineTo(hdc, 130 + (100 * i), 130 + (100 * j));
 
-	MoveToEx(hdc, 130 + (100 * i), 70 + (100 * j), NULL);
-	LineTo(hdc, 70 + (100 * i), 130 + (100 * j));
+	//Draw white piece
+	HPEN pen = CreatePen(PS_SOLID, 3, RGB(0, 0, 0));
+	HBRUSH brush = CreateSolidBrush(RGB(255, 255, 255));
+
+	HGDIOBJ penOld = SelectObject(hdc, pen);
+	HGDIOBJ brushOld = SelectObject(hdc, brush);
+
+	Ellipse(hdc, 60 + (100 * i), 60 + (100 * j), 140 + (100 * i), 140 + (100 * j));
+
+	SelectObject(hdc, penOld);
+	SelectObject(hdc, brushOld);
+	DeleteObject(pen);
+	DeleteObject(brush);
 }
-void GameDrawO(HDC hdc, int i, int j)
+
+
+void GameDrawBlack(HDC hdc, int i, int j)
 {
-	POINT pt[5];
-	pt[0].x = 100 + (100 * i); pt[0].y = 60 + (100 * j);
-	pt[1].x = 140 + (100 * i); pt[1].y = 100 + (100 * j);
-	pt[2].x = 100 + (100 * i); pt[2].y = 140 + (100 * j);
-	pt[3].x = 60 + (100 * i); pt[3].y = 100 + (100 * j);
-	pt[4].x = 100 + (100 * i); pt[4].y = 60 + (100 * j);
+	//Draw black piece
+	HPEN pen = CreatePen(PS_SOLID, 5, RGB(0, 0, 0));
+	HBRUSH brush = CreateSolidBrush(RGB(0, 0, 0));
 
-	Polyline(hdc, pt, 5);
+	HGDIOBJ penOld = SelectObject(hdc, pen);
+	HGDIOBJ brushOld = SelectObject(hdc, brush);
+
+	
+	Ellipse(hdc, 60 + (100 * i), 60 + (100 * j), 140 + (100 * i), 140 + (100 * j));
+
+	SelectObject(hdc, penOld);
+	SelectObject(hdc, brushOld);
+	DeleteObject(pen);
+	DeleteObject(brush);
 }
+
+void CheckLiberties(int i, int j)
+{
+	if (board[i][j] == O){
+		if (board[i - 1][j] != EMPTY && board[i + 1][j] != EMPTY && board[i][j - 1] != EMPTY && board[i][j + 1] != EMPTY){
+			if (board[i - 1][j] == X && board[i + 1][j] == X && board[i][j - 1] == X && board[i][j + 1] == X){
+
+
+				board[i][j] = EMPTY;
+				wSum += 1;
+			}
+		}
+	}
+
+		else if (board[i][j] == X){
+			if (board[i - 1][j] != EMPTY && board[i + 1][j] != EMPTY && board[i][j - 1] != EMPTY && board[i][j + 1] != EMPTY){
+				if (board[i - 1][j] == O && board[i + 1][j] == O && board[i][j - 1] == O && board[i][j + 1] == O){
+
+				
+					board[i][j] = EMPTY;
+					bSum += 1;
+				}
+			}
+		}
+}
+void GameSetKey(WPARAM wParam)
+{
+	key = (char)wParam;
+}
+
+//void GameOver()
+//{
+	//if (wSum > bSum)
+		//TextOut(hdc, 250, 50, _T("Player 1 wins!"), 14);
+	//else if (bSum > wSum)
+		//TextOut(hdc, 250, 50, _T("Player 2 wins!"), 14);
+
+
+//}
